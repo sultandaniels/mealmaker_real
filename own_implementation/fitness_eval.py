@@ -18,39 +18,8 @@ def s_prep(B_p,ing,ing_list,agroup_x_ing,thresh_prep,eps_prep):
         else 0 if pop.prep_ratio(ing,ing_list,agroup_x_ing)<thresh_prep-eps_prep and bit 
         else 1 for bit in B_p]
 
-
-def prepare_score(ingredient:Ingredient):
-    ing_str = ingredient._base_ingredient
-    
-    g_ing = to_grouped_ingredient(ingredient)
-    
-    ratio = prepare_ratio(ing_str)
-    
-    if ratio > PREPARE_RATIO_THRESHOLD + PREPARE_SCORE_EPS:
-        if 'prepare' not in g_ing._action_set:
-            return 0
-    
-    if ratio < PREPARE_RATIO_THRESHOLD - PREPARE_SCORE_EPS:
-        if 'prepare' in g_ing._action_set:
-            return 0
-    
-    return 1
-
-def heat_score(ingredient:Ingredient):
-    ing_str = ingredient._base_ingredient
-    
-    g_ing = to_grouped_ingredient(ingredient)
-    
-    ratio = heat_ratio(ing_str)
-    
-    if ratio > HEAT_RATIO_THRESHOLD + HEAT_SCORE_EPS:
-        if 'heat' not in g_ing._action_set:
-            return 0
-    
-    if ratio < HEAT_RATIO_THRESHOLD - HEAT_SCORE_EPS:
-        if 'heat' in g_ing._action_set:
-            return 0
-    
-    return 1
-
+def s_ing():
+    """
+    blah blah
+    """
 
