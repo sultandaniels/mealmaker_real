@@ -24,7 +24,7 @@ def rand_prep(ing, ing_list, agroup_x_ing, prep_thresh):
     """
     returns a boolean value (with randomness) of whether ing should be prepared. If in doubt, set prep_thresh = 0.35
     """
-    return prep_ratio(ing, ing_list, agroup_x_ing) > np.random.normal(prep_thresh, 0.1)
+    return prep_ratio(ing, ing_list, agroup_x_ing) > np.random.normal(prep_thresh, 0.2)
 
 
 def heat_ratio(ing, ing_list, agroup_x_ing):
@@ -48,7 +48,7 @@ def rand_heat(ing, ing_list, agroup_x_ing, heat_thresh):
     """
     returns a boolean value (with randomness) of whether ing should be prepared. If in doubt, set heat_thresh = 0.65
     """
-    return heat_ratio(ing, ing_list, agroup_x_ing) > np.random.normal(heat_thresh, 0.15)
+    return heat_ratio(ing, ing_list, agroup_x_ing) > np.random.normal(heat_thresh, 0.2)
 
 
 # functions to instantiate trees
