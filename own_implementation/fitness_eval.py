@@ -51,7 +51,7 @@ def s_prep(B_p, ing_list, agroup_x_ing, thresh_prep, eps_prep):
 # output number of actions done to an ingredient
 def num_acts(node, act_num, i):
     if not node:
-        return None
+        return 0
     if node.category == "ing" and node.index == i:
         return act_num
     if node.category == "action":
@@ -62,7 +62,7 @@ def num_acts(node, act_num, i):
         if val:
             return val
 
-    return None
+    return 0
 
 
 # number of duplicate actions on an ingredient
@@ -70,7 +70,7 @@ def num_acts(node, act_num, i):
 # output number of duplicate actions done to an ingredient
 def num_dup_acts(node, dup_num, i, act_inds):
     if not node:
-        return None
+        return 0
     if node.category == "ing" and node.index == i:
         return dup_num
     if node.category == "action":  # action node
@@ -81,10 +81,10 @@ def num_dup_acts(node, dup_num, i, act_inds):
 
     for child in node.children:
         val = num_dup_acts(child, dup_num, i, act_inds)
-        if val is not None:
+        if val:
             return val
 
-    return None
+    return 0
 
 
 # inputs a tree and outputs list of action scores for each ingredient
@@ -93,7 +93,10 @@ def s_act(tree, ing_inds):
     for ing in ing_inds:
         n_a = num_acts(tree.root, 0, ing)  # number of actions on an ing
         n_da = num_dup_acts(tree.root, 0, ing, [])  # num of dup acts
-        s_a_list.append((n_a - n_da) / n_a)  # score function
+        if n_a:
+            s_a_list.append((n_a - n_da) / n_a)  # score function
+        else:
+            s_a_list.append(0.0)
     return s_a_list
 
 
@@ -105,9 +108,7 @@ def s_ing(s_h, s_p, s_a):
     return s_ing_list
 
 
-# inputs an action node and outputs list that specifies
-# whether this action is valid for the ingredients it
-# is applied to
+# inputs an action node and outputs its action node score
 def s_act_nodes(node, act_ind, act_ing_mat, s_i):
     queue = [node]
     while len(queue):
@@ -121,7 +122,7 @@ def s_act_nodes(node, act_ind, act_ing_mat, s_i):
             if child is not None:
                 queue.append(child)
 
-    return s_i
+    return sum(s_i) / len(s_i)
 
 
 # inputs a mix node and a list that is the length
@@ -155,9 +156,66 @@ def tuple_pairs(s_i):
 # outputs mix node score
 def s_mix(tups, ing_ing_mat):
     counter = 0
-    sum = 0
+    accum = 0
     for tup in tups:
-        sum = sum + ing_ing_mat[tup[0], tup[1]]
+        accum = accum + ing_ing_mat[tup[0], tup[1]]
         counter = counter + 1
 
-    return sum / counter
+    return accum / counter
+
+
+# finds all action nodes, computes their scores
+# outputs total action node score and amount of action nodes
+def s_act_nodes_sum(tree, act_ing_mat):
+    accum = 0
+    count = 0
+    queue = [tree.root]
+    while len(queue):
+        node = queue.pop(0)
+        if node.category == "action":
+            count = count + 1
+            accum = accum + s_act_nodes(node, node.index, act_ing_mat, [])
+        for child in node.children:
+            if child is not None:
+                queue.append(child)
+
+    return [accum, count]
+
+
+def s_ing_nodes_sum(s_ings):
+    return [sum(s_ings), len(s_ings)]
+
+
+# finds all mix nodes, computes their scores
+# outputs total mix node score and amount of mix nodes
+def s_mix_nodes_sum(tree, ing_ing_mat):
+    accum = 0
+    count = 0
+    queue = [tree.root]
+    while len(queue):
+        node = queue.pop(0)
+        if node.category == "mix":
+            count = count + 1
+            s_i = [None] * len(node.children)  # empty list that's the size of the child list
+            s_i = s_mix_tuples(node, s_i)
+            tups = tuple_pairs(s_i)
+            accum = accum + s_mix(tups, ing_ing_mat)
+        for child in node.children:
+            if child is not None:
+                queue.append(child)
+
+    return [accum, count]
+
+
+def tree_score(tree, ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh, prep_thresh, heat_eps, prep_eps, act_ing_mat, ing_ing_mat):
+    b_h = pop.need_heat_act(ings, all_ing, actgrp_ing_mat, heat_thresh)
+    b_p = pop.need_prep_act(ings, all_ing, actgrp_ing_mat, prep_thresh)
+    s_h = s_heat(b_h, ings, actgrp_ing_mat, heat_thresh, heat_eps)
+    s_p = s_heat(b_p, ings, actgrp_ing_mat, prep_thresh, prep_eps)
+    s_a = s_act(tree, ing_inds)
+    s_ings = s_ing(s_h, s_p, s_a)
+
+    s_ing_lst = s_ing_nodes_sum(s_ings)
+    s_act_lst = s_act_nodes_sum(tree, act_ing_mat)
+    s_mix_lst = s_mix_nodes_sum(tree, ing_ing_mat)
+    return (s_ing_lst[0] + s_act_lst[0] + s_mix_lst[0])/(s_ing_lst[1] + s_act_lst[1] + s_mix_lst[1])
