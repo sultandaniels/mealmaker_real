@@ -24,6 +24,9 @@ class Tree:
     def __init__(self, root):
         self.root = root
 
+    def change_root(self, node):
+        self.root = node
+
     # inputs a list of trees and checks if the root nodes of each tree have the same action node. Returns a list of
     # the mixed trees
     def check_same_act(trees):
