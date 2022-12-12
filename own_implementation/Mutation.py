@@ -72,15 +72,18 @@ def del_act(node, parent):
 
 
 # inputs a node, its parent, and the action list and adds a random action node to the tree
-def add_act(node, parent, acts):
+def add_act(tree, node, parent, acts):
     acts_ind = np.arange(0, len(acts))
 
     newact = nd.Node("action", rand.randint(len(acts)))  # new random action node
     newact.insert_child([node])  # make og node its child
     print("adding action", newact.index)
 
-    parent.children.remove(node)  # remove og node from parent's child list
-    parent.insert_child([newact])  # insert new action to parent's child list
+    if parent: #not the root
+        parent.children.remove(node)  # remove og node from parent's child list
+        parent.insert_child([newact])  # insert new action to parent's child list
+    else: #if og node was the root
+        tree.change_root(newact)
 
     return ...
 
@@ -88,14 +91,14 @@ def add_act(node, parent, acts):
 # inputs a node of a tree, its parent, and the action list and mutates one of its action nodes
 # (recursively and nondeterministically searches the tree for a mix node)
 # Outputs a boolean that is false if no action nodes are within the tree
-def act_mut(node, parent, acts):
+def act_mut(tree, node, parent, acts):
     if node.category == "action":  # adding another mix node when only two children is invalid
         if not parent:  # this means the node is the root and we can't delete it
-            add_act(node, parent, acts)
+            add_act(tree, node, parent, acts)
         else:
             choice = rand.randint(2)  # choose to add or delete the action node
             if choice:
-                add_act(node, parent, acts)
+                add_act(tree, node, parent, acts)
             else:
                 del_act(node, parent)
 
@@ -112,7 +115,7 @@ def act_mut(node, parent, acts):
     inds = np.arange(l)  # list of indices of child list
     rand.shuffle(inds)  # shuffle the indices so that the next child is chosen randomly
     while actfound == 0 and (i < l):  # while a mix node hasn't been found and the node has children
-        if act_mut(node.children[inds[i]], node, acts):  # if mix node is found within one of the subtrees
+        if act_mut(tree, node.children[inds[i]], node, acts):  # if mix node is found within one of the subtrees
             actfound = 1
             return True
         i = i + 1
@@ -123,9 +126,9 @@ def act_mut(node, parent, acts):
 # inputs a node of a tree, its parent, and the action list and adds a random action node on top of an ingredient node
 # (recursively and nondeterministically searches the tree for an ingredient node)
 # Outputs a boolean that is false if no ingredient nodes are within the tree
-def ing_mut(node, parent, acts):
+def ing_mut(tree, node, parent, acts):
     if node.category == "ing":  # adding another mix node when only two children is invalid
-        add_act(node, parent, acts)
+        add_act(tree, node, parent, acts)
         return True
 
     if not node.children:
@@ -139,7 +142,7 @@ def ing_mut(node, parent, acts):
     inds = np.arange(l)  # list of indices of child list
     rand.shuffle(inds)  # shuffle the indices so that the next child is chosen randomly
     while actfound == 0 and (i < l):  # while a mix node hasn't been found and the node has children
-        if ing_mut(node.children[inds[i]], node, acts):  # if mix node is found within one of the subtrees
+        if ing_mut(tree, node.children[inds[i]], node, acts):  # if mix node is found within one of the subtrees
             actfound = 1
             return True
         i = i + 1
@@ -160,9 +163,9 @@ def mutate(gens, population, acts, ings, all_ing, ing_inds, actgrp_ing_mat, heat
             if k == 0:  # mutate mix node
                 mix_mut(nextgen.root)
             elif k == 1:  # mutate action node
-                act_mut(nextgen.root, None, acts)
+                act_mut(nextgen, nextgen.root, None, acts)
             elif k == 2:  # mutate ingredient node
-                ing_mut(nextgen.root, None, acts)
+                ing_mut(nextgen, nextgen.root, None, acts)
 
             nextgen_score = fit.tree_score(nextgen, ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh, prep_thresh,
                                            heat_eps, prep_eps, act_ing_mat,
