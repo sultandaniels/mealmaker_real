@@ -121,8 +121,10 @@ def s_act_nodes(node, act_ind, act_ing_mat, s_i):
         for child in node.children:
             if child is not None:
                 queue.append(child)
-
-    return sum(s_i) / len(s_i)
+    if len(s_i):
+        return sum(s_i) / len(s_i)
+    else:
+        return 0
 
 
 # inputs a mix node and a list that is the length
@@ -160,8 +162,10 @@ def s_mix(tups, ing_ing_mat):
     for tup in tups:
         accum = accum + ing_ing_mat[tup[0], tup[1]]
         counter = counter + 1
-
-    return accum / counter
+    if counter:
+        return accum / counter
+    else:
+        return 0
 
 
 # finds all action nodes, computes their scores
@@ -207,7 +211,8 @@ def s_mix_nodes_sum(tree, ing_ing_mat):
     return [accum, count]
 
 
-def tree_score(tree, ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh, prep_thresh, heat_eps, prep_eps, act_ing_mat, ing_ing_mat):
+def node_score(tree, ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh, prep_thresh, heat_eps, prep_eps, act_ing_mat,
+               ing_ing_mat):
     b_h = pop.need_heat_act(ings, all_ing, actgrp_ing_mat, heat_thresh)
     b_p = pop.need_prep_act(ings, all_ing, actgrp_ing_mat, prep_thresh)
     s_h = s_heat(b_h, ings, actgrp_ing_mat, heat_thresh, heat_eps)
@@ -218,4 +223,52 @@ def tree_score(tree, ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh, prep_
     s_ing_lst = s_ing_nodes_sum(s_ings)
     s_act_lst = s_act_nodes_sum(tree, act_ing_mat)
     s_mix_lst = s_mix_nodes_sum(tree, ing_ing_mat)
-    return (s_ing_lst[0] + s_act_lst[0] + s_mix_lst[0])/(s_ing_lst[1] + s_act_lst[1] + s_mix_lst[1])
+
+    if s_ing_lst[1] + s_act_lst[1] + s_mix_lst[1]:
+        return (s_ing_lst[0] + s_act_lst[0] + s_mix_lst[0]) / (s_ing_lst[1] + s_act_lst[1] + s_mix_lst[1])
+    else:
+        return 0
+
+
+# computes total number of actions and number of distinct actions
+# outputs s_dup, b_acts and b_ings
+def s_duplicates_b_acts_b_ings(tree):
+    s_dup = 0
+    acts = []
+    distinct = 0
+    total = 0
+    b_acts = 0
+    b_ings = 0
+    ing_amt = 0
+    queue = [tree.root]
+    while len(queue):
+        node = queue.pop(0)
+        if node.category == "action":
+            if node.index not in acts:
+                distinct = distinct + 1
+                total = total + 1
+                acts.append(node.index)
+            else:
+                total = total + 1
+        if node.category == "ing":
+            ing_amt = ing_amt + 1
+        for child in node.children:
+            if child is not None:
+                queue.append(child)
+    if total:
+        s_dup = distinct / total
+    if total > 2:
+        b_acts = 1
+    if ing_amt > 2:
+        b_ings = 1
+
+    return [s_dup, b_acts, b_ings]
+
+
+def tree_score(tree, ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh, prep_thresh, heat_eps, prep_eps, act_ing_mat,
+               ing_ing_mat):
+    s_nodes = node_score(tree, ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh, prep_thresh, heat_eps, prep_eps,
+                         act_ing_mat, ing_ing_mat)
+    s_others = s_duplicates_b_acts_b_ings(tree)
+
+    return s_nodes*s_others[0]*s_others[1]*s_others[2]

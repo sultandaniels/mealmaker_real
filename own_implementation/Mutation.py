@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.random as rand
 import node as nd
+import fitness_eval as fit
 
 
 # input a node of a tree and mutate one of the mix nodes. (recursively and nondeterministically searches the tree
@@ -144,3 +145,42 @@ def ing_mut(node, parent, acts):
         i = i + 1
 
     return False
+
+
+# given the number of generations, the population, and other parameter, mutate the generation
+# choosing the higher scored individual pairwise for the next generation
+# finally at the end of the mutations, choose the individual with the highest score
+def mutate(gens, population, acts, ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh, prep_thresh, heat_eps,
+           prep_eps, act_ing_mat,
+           ing_ing_mat):
+    for j in range(0, gens):
+        for i in range(0, len(population)):
+            nextgen = population[i].copy()  # copy tree
+            k = np.random.randint(3)  # random choose how to mutate the copy
+            if k == 0:  # mutate mix node
+                mix_mut(nextgen.root)
+            elif k == 1:  # mutate action node
+                act_mut(nextgen.root, None, acts)
+            elif k == 2:  # mutate ingredient node
+                ing_mut(nextgen.root, None, acts)
+
+            nextgen_score = fit.tree_score(nextgen, ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh, prep_thresh,
+                                           heat_eps, prep_eps, act_ing_mat,
+                                           ing_ing_mat)
+            currentgen_score = fit.tree_score(population[i], ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh,
+                                              prep_thresh,
+                                              heat_eps, prep_eps, act_ing_mat,
+                                              ing_ing_mat)
+
+            if nextgen_score > currentgen_score:  # pick the generation with the better score
+                population[i] = nextgen
+
+    final_scores = [None] * len(population)
+    for i in range(0, len(population)):
+        final_scores[i] = fit.tree_score(population[i], ings, all_ing, ing_inds, actgrp_ing_mat, heat_thresh,
+                                         prep_thresh,
+                                         heat_eps, prep_eps, act_ing_mat,
+                                         ing_ing_mat)
+
+    final_ind = final_scores.index(max(final_scores))
+    return population[final_ind]
